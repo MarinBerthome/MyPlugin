@@ -4,21 +4,19 @@
  * @return boolean
  */
 
-function plugin_dashboardcredit_install()
+function plugin_morewidgets_install()
 {
     global $DB;
 
     if($DB->tableExists('glpi_dashboards_dashboards'))
     {
         $query = "INSERT INTO `glpi_dashboards_dashboards` 
-          (`id`,
-           `key`, 
+          (`key`, 
            `name`, 
            `context`) 
            VALUES 
-           ('6', 
-           'test', 
-           'Test', 
+           ('Credits', 
+           'Credits', 
            'core');";
         $DB->query($query);
 
@@ -26,14 +24,14 @@ function plugin_dashboardcredit_install()
     return true ;
 }
 
-function plugin_dashboardcredit_uninstall()
+function plugin_morewidgets_uninstall()
 {
     global $DB;
 
     if($DB->tableExists('glpi_dashboards_dashboards'))
     {
         $query = "DELETE FROM `glpi_dashboards_dashboards` 
-        WHERE `glpi_dashboards_dashboards`.`key` = 'test' ;";
+        WHERE `glpi_dashboards_dashboards`.`key` = 'Credits' ;";
         $DB->query($query);
 
     }
@@ -41,10 +39,21 @@ function plugin_dashboardcredit_uninstall()
 }
 
 
-function plugin_dashboardcredit_dashboardCards()
+function plugin_morewidgets_dashboardCards()
 {
     $cards = [];
-    $cards = array_merge($cards, CreditCards::dashboardCards());
+    $cards = array_merge($cards, PluginMorewidgetsCreditcards::creditCards());
+    $cards += array_merge($cards, PluginMorewidgetsAssistancecards::assistanceCards());
 
     return $cards;
+}
+
+function plugin_morewidgets_filter()
+{
+    $filter = [
+        'credit'      => __("Type de crédit"),
+        'sla'         => __("SLAs"),
+    ];
+
+    return $filter;
 }

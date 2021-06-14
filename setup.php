@@ -1,32 +1,35 @@
 <?php
 
 
-function plugin_init_dashboardcredit() {
+function plugin_init_morewidgets() {
 
     global $PLUGIN_HOOKS, $LANG ;
 
-    $PLUGIN_HOOKS['csrf_compliant']['dashboardcredit'] = true;
+    $PLUGIN_HOOKS['csrf_compliant']['morewidgets'] = true;
 
     Plugin::registerClass('PluginDashboardConfig', [
         'addtabon' => ['Entity']
     ]);
 
-    $PLUGIN_HOOKS["menu_toadd"]['dashboardcredit'] = array('plugins'  => 'PluginDashboardConfig');
-    $PLUGIN_HOOKS['config_page']['dashboardcredit'] = 'front/index.php';
+    $PLUGIN_HOOKS["menu_toadd"]['morewidgets'] = array('plugins'  => 'PluginDashboardConfig');
+    $PLUGIN_HOOKS['config_page']['morewidgets'] = 'front/index.php';
 
 
     // hook on dashboard (cards, providers, widgets)
-    $PLUGIN_HOOKS['dashboard_cards']['dashboardcredit'] = 'plugin_dashboardcredit_dashboardCards';
+    $PLUGIN_HOOKS['dashboard_cards']['morewidgets'] = 'plugin_morewidgets_dashboardCards';
+
+    // hook on filters
+    $PLUGIN_HOOKS['dashboard_filters']['morewidgets'] = 'plugin_morewidgets_filter';
 
 }
 
 
-function plugin_version_dashboardcredit(){
+function plugin_version_morewidgets(){
     global $DB, $LANG;
 
-    return array('name'			=> __('Dashboard Credit','dashboardcredit'),
+    return array('name'			=> __('More Widgets','morewidgets'),
         'version' 			=> '1.0.2',
-        'author'			   => 'Maribert',
+        'author'			   => 'IT Gouvernance',
         'license'		 	=> 'GPLv2+',
         'homepage'			=> 'https://forge.glpi-project.org/projects/dashboard',
         'minGlpiVersion'	=> '9.4'
@@ -34,7 +37,7 @@ function plugin_version_dashboardcredit(){
 }
 
 
-function plugin_dashboardcredit_check_prerequisites(){
+function plugin_morewidgets_check_prerequisites(){
     if (GLPI_VERSION >= 9.4){
         return true;
     } else {
@@ -43,7 +46,7 @@ function plugin_dashboardcredit_check_prerequisites(){
 }
 
 
-function plugin_dashboardcredit_check_config($verbose=false){
+function plugin_morewidgets_check_config($verbose=false){
     if ($verbose) {
         echo 'Installed / not configured';
     }

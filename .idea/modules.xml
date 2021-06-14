@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/dashboardcredit.iml" filepath="$PROJECT_DIR$/.idea/dashboardcredit.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/morewidgets.iml" filepath="$PROJECT_DIR$/.idea/morewidgets.iml" />
     </modules>
   </component>
 </project>
