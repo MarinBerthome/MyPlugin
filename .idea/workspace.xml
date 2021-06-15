@@ -1,16 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="00bf7fea-b491-412b-b742-1c867f67b5dc" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/inc/assistancecards.class.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/inc/utilities.class.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dashboardcredit.iml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/hook.php" beforeDir="false" afterPath="$PROJECT_DIR$/hook.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/inc/creditcards.class.php" beforeDir="false" afterPath="$PROJECT_DIR$/inc/creditcards.class.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/setup.php" beforeDir="false" afterPath="$PROJECT_DIR$/setup.php" afterDir="false" />
+    <list default="true" id="00bf7fea-b491-412b-b742-1c867f67b5dc" name="Default Changelist" comment="Remise en forme des fichiers. Ajout des cartes assistance (SLA, backlogs...)">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/inc/assistancecards.class.php" beforeDir="false" afterPath="$PROJECT_DIR$/inc/assistancecards.class.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/inc/utilities.class.php" beforeDir="false" afterPath="$PROJECT_DIR$/inc/utilities.class.php" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -54,8 +48,17 @@
       <workItem from="1623157687438" duration="45000" />
       <workItem from="1623158007077" duration="603000" />
       <workItem from="1623655502925" duration="729000" />
-      <workItem from="1623656366913" duration="7150000" />
+      <workItem from="1623656366913" duration="15448000" />
+      <workItem from="1623742963971" duration="2835000" />
     </task>
+    <task id="LOCAL-00001" summary="Remise en forme des fichiers. Ajout des cartes assistance (SLA, backlogs...)">
+      <created>1623666406659</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1623666406659</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -72,5 +75,9 @@
       </map>
     </option>
     <option name="oldMeFiltersMigrated" value="true" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Remise en forme des fichiers. Ajout des cartes assistance (SLA, backlogs...)" />
+    <option name="LAST_COMMIT_MESSAGE" value="Remise en forme des fichiers. Ajout des cartes assistance (SLA, backlogs...)" />
   </component>
 </project>

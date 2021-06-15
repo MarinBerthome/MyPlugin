@@ -3,7 +3,11 @@
 
 class PluginMorewidgetsAssistancecards extends CommonDBTM
 {
-    public static function assistanceCards()
+    /**
+     * Retourne un tableau de nouvelles cartes pour le tableau de bord assistance
+     * @return array
+     */
+    public static function assistanceCards(): array
     {
         $cards["sla_evolution"] = [
             'widgettype' => ['stackedbars'],
@@ -11,9 +15,27 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
             'group' => __('Assistance'),
             'label' => __('Evolution des SLA '),
             'provider' => "PluginMorewidgetsAssistancecards::getSLAEvolution",
+            'args'     => [
+                'case' => 'normal',
+            ],
             'filters' => [
                 'dates', 'dates_mod', 'itilcategory',
                 'group_tech', 'user_tech', 'requesttype', 'location', 'sla'
+            ]
+        ];
+
+        $cards["sla_evolution_percent"] = [
+            'widgettype' => ['stackedbars'],
+            'itemtype' => "\\Ticket",
+            'group' => __('Assistance'),
+            'label' => __('Pourcentage des SLA'),
+            'provider' => "PluginMorewidgetsAssistancecards::getSLAEvolution",
+            'args'     => [
+                'case' => 'percent',
+            ],
+            'filters' => [
+                'dates', 'dates_mod', 'itilcategory',
+                'group_tech', 'user_tech', 'requesttype', 'location','sla'
             ]
         ];
 
@@ -23,30 +45,6 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
             'group' => __('Assistance'),
             'label' => __('Ancienneté des tickets'),
             'provider' => "PluginMorewidgetsAssistancecards::getOldTickets",
-            'filters' => [
-                'dates', 'dates_mod', 'itilcategory',
-                'group_tech', 'user_tech', 'requesttype', 'location','sla'
-            ]
-        ];
-
-        $cards["ticket_technician"] = [
-            'widgettype' => ['stackedbars'],
-            'itemtype' => "\\Ticket",
-            'group' => __('Assistance'),
-            'label' => __('Tickets par techniciens'),
-            'provider' => "PluginMorewidgetsAssistancecards::getTicketsTechnician",
-            'filters' => [
-                'dates', 'dates_mod', 'itilcategory',
-                'group_tech', 'user_tech', 'requesttype', 'location','sla'
-            ]
-        ];
-
-        $cards["sla_evolution_percent"] = [
-            'widgettype' => ['stackedbars'],
-            'itemtype' => "\\Ticket",
-            'group' => __('Assistance'),
-            'label' => __('Pourcentage des SLA'),
-            'provider' => "PluginMorewidgetsAssistancecards::getSLAEvolutionPercent",
             'filters' => [
                 'dates', 'dates_mod', 'itilcategory',
                 'group_tech', 'user_tech', 'requesttype', 'location','sla'
@@ -65,14 +63,40 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
             ]
         ];
 
+        $cards["ticket_technician"] = [
+            'widgettype' => ['stackedbars'],
+            'itemtype' => "\\Ticket",
+            'group' => __('Assistance'),
+            'label' => __('Tickets par techniciens'),
+            'provider' => "PluginMorewidgetsAssistancecards::getTicketsTechnician",
+            'filters' => [
+                'dates', 'dates_mod', 'itilcategory',
+                'group_tech', 'user_tech', 'requesttype', 'location','sla'
+            ]
+        ];
+
         return $cards;
 
     }
 
-    public static function getSLAEvolution(array $params = []): array
+    /**
+     * Retourne l'evolution des SLA
+     * En fonction de l'argument on retourne un pourcentage ou le nombre de tickets
+     * @param string $case :
+     * - 'percent' : retourner le pourcentage de SLA
+     * - 'normal' :  avoir la quantité de SLA
+     *
+     * @param array $params default values for
+     * - 'title' of the card
+     * - 'icon' of the card
+     * - 'apply_filters' values from dashboard filters
+     * @return array
+     */
+    public static function getSLAEvolution(
+        string $case = "",
+        array $params = []): array
     {
         $DB = DBConnection::getReadConnection();
-
 
         $default_params = [
             'label' => "",
@@ -83,6 +107,10 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
 
         $t_table = Ticket::getTable();
 
+        /**
+         * On recupère tous les tickets de la table ticket qui ne sont pas supprimés et qui sont uniquement fermés
+         *
+         */
         $sub_query = array_merge_recursive(
             [
                 'DISTINCT' => true,
@@ -98,35 +126,70 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
             PluginMorewidgetsUtilities::getFiltersCriteria($t_table, $params['apply_filters'])
         );
 
-        $criteria = [
-            'SELECT' => [
-                new QueryExpression(
-                    "FROM_UNIXTIME(UNIX_TIMESTAMP(" . $DB->quoteName("{$t_table}_distinct.date") . "),'%Y-%m') AS period"
-                ),
-                new QueryExpression(
-                    "SUM(IF({$t_table}_distinct.time_to_resolve > {$t_table}_distinct.closedate, 1, 0))
-                    as " . $DB->quoteValue(_x('status', 'Respectée'))
-                ),
-                new QueryExpression(
-                    "SUM(IF({$t_table}_distinct.time_to_resolve < {$t_table}_distinct.closedate, 1, 0))  
-                    as " . $DB->quoteValue(_x('status', 'Non respectée'))
-                ),
-            ],
-            'FROM' => new QuerySubQuery($sub_query, "{$t_table}_distinct"),
-            'ORDER' => 'period ASC',
-            'GROUP' => ['period'],
+        $criteria = array();
 
-        ];
+        /**
+         * En fonction des données désirée on va faire une requête SQL différente
+         */
+        switch ($case)
+        {
+            case 'percent' :
+            {
+                $criteria = [
+                    'SELECT' => [
+                        new QueryExpression(
+                            "FROM_UNIXTIME(UNIX_TIMESTAMP(" . $DB->quoteName("{$t_table}_distinct.date") . "),'%Y-%m') AS period"
+                        ),
+                        new QueryExpression(
+                            "SUM(IF({$t_table}_distinct.time_to_resolve > IFNULL({$t_table}_distinct.closedate, 0), 1, 0)) / COUNT({$t_table}_distinct.time_to_resolve) * 100 
+                    as " . $DB->quoteValue(_x('status', 'Respectée'))
+                        ),
+                        new QueryExpression(
+                            "SUM(IF({$t_table}_distinct.time_to_resolve < IFNULL({$t_table}_distinct.closedate, 0), 1, 0)) / COUNT({$t_table}_distinct.time_to_resolve) * 100 
+                    as " . $DB->quoteValue(_x('status', 'Non respectée'))
+                        ),
+                    ],
+                    'FROM' => new QuerySubQuery($sub_query, "{$t_table}_distinct"),
+                    'ORDER' => 'period ASC',
+                    'GROUP' => ['period']
+                ];
+            }
+            case 'normal' :
+            {
+                $criteria = [
+                    'SELECT' => [
+                        new QueryExpression(
+                            "FROM_UNIXTIME(UNIX_TIMESTAMP(" . $DB->quoteName("{$t_table}_distinct.date") . "),'%Y-%m') AS period"
+                        ),
+                        new QueryExpression(
+                            "SUM(IF({$t_table}_distinct.time_to_resolve > {$t_table}_distinct.closedate, 1, 0))
+                    as " . $DB->quoteValue(_x('status', 'Respectée'))
+                        ),
+                        new QueryExpression(
+                            "SUM(IF({$t_table}_distinct.time_to_resolve < {$t_table}_distinct.closedate, 1, 0))  
+                    as " . $DB->quoteValue(_x('status', 'Non respectée'))
+                        ),
+                    ],
+                    'FROM' => new QuerySubQuery($sub_query, "{$t_table}_distinct"),
+                    'ORDER' => 'period ASC',
+                    'GROUP' => ['period'],
+
+                ];
+            }
+        }
 
         $iterator = $DB->request($criteria);
 
+        /**
+         * URL pour retrouver les tickets concernés quand on clique dessus
+         */
         $s_criteria = [
             'criteria' => [
                 [
                     'link' => 'AND',
                     'field' => 12, // status
                     'searchtype' => 'equals',
-                    'value' => '6'
+                    'value' => '6' // clos
                 ], [
                     'link' => 'AND',
                     'field' => 15, // creation date
@@ -140,7 +203,7 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
                 ],
                 [
                     'link' => 'AND',
-                    'field' => 82,
+                    'field' => 82, // TTR dépassé
                     'searchtype' => 'equals',
                     'value' => null
                 ],
@@ -149,23 +212,49 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
             'reset' => 'reset'
         ];
 
+        /**
+         * $data est le tableau qui est retourné par la fonction
+         * - labels[] : c'est le texte qui correspondera à chacune des barres du graphique, ici ce sera des dates
+         * - series[] : correspond au données associées au labels on retrouvera :
+         *              - series[0]['label'] : nom associée à la donnée (ici ce sera soit respectée soit pas respectée)
+         *              - series[0]['data']['value'] : valeur associée
+         *              - series[0]['data']['url'] : url associé qui est derterminé avec le tableau $s_criteria
+         */
         $data = [
             'labels' => [],
             'series' => []
         ];
+
+        /**
+         * Pour chaque colonne qui resulte de la requête SQL
+         */
         foreach ($iterator as $result) {
 
+            /**
+             * On récupère la date
+             */
             list($start_day, $end_day) = PluginMorewidgetsUtilities::formatMonthyearDates($result['period']);
             $s_criteria['criteria'][1]['value'] = $start_day;
             $s_criteria['criteria'][2]['value'] = $end_day;
 
+            /**
+             * On l'assigne au tableau $data
+             *
+             */
             $data['labels'][] = $result['period'];
             $tmp = $result;
+
             unset($tmp['period']);
             $i = 0;
 
             foreach ($tmp as $label2 => $value) {
 
+                /**
+                 * Pour chaque valeur on regarde à quelle catégorie elle correspond.
+                 * En fonction de celle-ci, on met 0 ou 1 dans l'Url ($s_criteria)
+                 * - 0 = SLA Respecté
+                 * - 1 = SLA Non respecté
+                 */
                 if ($label2 == 'Respectée') {
                     $s_criteria['criteria'][3]['value'] = 0;
 
@@ -174,6 +263,9 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
 
                 }
 
+                /**
+                 * On assigne la valeur dans le tableau $data avec le nom et l'url associé
+                 */
                 $data['series'][$i]['name'] = $label2;
                 $data['series'][$i]['data'][] = [
                     'value' => (int)$value,
@@ -182,6 +274,7 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
                 $i++;
             }
         }
+
         return [
             'data' => $data,
             'label' => $params['label'],
@@ -189,130 +282,18 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
         ];
     }
 
-
-    public static function getSLAEvolutionPercent(array $params = []): array
-    {
-
-        $DB = DBConnection::getReadConnection();
-
-
-        $default_params = [
-            'label' => "",
-            'icon' => Ticket::getIcon(),
-            'apply_filters' => [],
-        ];
-        $params = array_merge($default_params, $params);
-
-        $t_table = Ticket::getTable();
-
-        $sub_query = array_merge_recursive(
-            [
-                'DISTINCT' => true,
-                'SELECT' => ["$t_table.*"],
-                'FROM' => $t_table,
-                'WHERE' => [
-                        "$t_table.is_deleted" => 0,
-                        "$t_table.closedate IS NOT NULL",
-                    ] + getEntitiesRestrictCriteria($t_table),
-            ],
-            // limit count for profiles with limited rights
-            Ticket::getCriteriaFromProfile(),
-            PluginMorewidgetsUtilities::getFiltersCriteria($t_table, $params['apply_filters'])
-        );
-
-        $criteria = [
-            'SELECT' => [
-                new QueryExpression(
-                    "FROM_UNIXTIME(UNIX_TIMESTAMP(" . $DB->quoteName("{$t_table}_distinct.date") . "),'%Y-%m') AS period"
-                ),
-                new QueryExpression(
-                    "SUM(IF({$t_table}_distinct.time_to_resolve > IFNULL({$t_table}_distinct.closedate, 0), 1, 0)) / COUNT({$t_table}_distinct.time_to_resolve) * 100 
-                    as " . $DB->quoteValue(_x('status', 'Respectée'))
-                ),
-                new QueryExpression(
-                    "SUM(IF({$t_table}_distinct.time_to_resolve < IFNULL({$t_table}_distinct.closedate, 0), 1, 0)) / COUNT({$t_table}_distinct.time_to_resolve) * 100 
-                    as " . $DB->quoteValue(_x('status', 'Non respectée'))
-                ),
-            ],
-            'FROM' => new QuerySubQuery($sub_query, "{$t_table}_distinct"),
-            'ORDER' => 'period ASC',
-            'GROUP' => ['period']
-        ];
-        $iterator = $DB->request($criteria);
-
-        $s_criteria = [
-            'criteria' => [
-                [
-                    'link' => 'AND',
-                    'field' => 12, // status
-                    'searchtype' => 'equals',
-                    'value' => '6'
-                ], [
-                    'link' => 'AND',
-                    'field' => 15, // creation date
-                    'searchtype' => 'morethan',
-                    'value' => null
-                ], [
-                    'link' => 'AND',
-                    'field' => 15, // creation date
-                    'searchtype' => 'lessthan',
-                    'value' => null
-                ],
-                [
-                    'link' => 'AND',
-                    'field' => 82,
-                    'searchtype' => 'equals',
-                    'value' => null
-                ],
-                PluginMorewidgetsUtilities::getSearchFiltersCriteria($t_table, $params['apply_filters'])
-            ],
-            'reset' => 'reset'
-        ];
-
-        $data = [
-            'labels' => [],
-            'series' => []
-        ];
-        foreach ($iterator as $result) {
-
-            list($start_day, $end_day) = PluginMorewidgetsUtilities::formatMonthyearDates($result['period']);
-            $s_criteria['criteria'][1]['value'] = $start_day;
-            $s_criteria['criteria'][2]['value'] = $end_day;
-
-            $data['labels'][] = $result['period'];
-            $tmp = $result;
-            unset($tmp['period']);
-            $i = 0;
-
-            foreach ($tmp as $label2 => $value) {
-
-                if ($label2 == 'Respectée') {
-                    $s_criteria['criteria'][3]['value'] = 0;
-
-                } else {
-                    $s_criteria['criteria'][3]['value'] = 1;
-
-                }
-
-                $data['series'][$i]['name'] = $label2;
-                $data['series'][$i]['data'][] = [
-                    'value' => (int)$value,
-                    'url' => Ticket::getSearchURL() . "?" . Toolbox::append_params($s_criteria),
-                ];
-                $i++;
-            }
-        }
-        return [
-            'data' => $data,
-            'label' => $params['label'],
-            'icon' => $params['icon'],
-        ];
-    }
-
+    /**
+     * Retourne tous les tickets tickets oubliés par mois et par status
+     * @param array $params default values for
+     * - 'title' of the card
+     * - 'icon' of the card
+     * - 'apply_filters' values from dashboard filters
+     *
+     * @return array
+     */
     public static function getOldTickets(array $params = []): array
     {
         $DB = DBConnection::getReadConnection();
-
 
         $default_params = [
             'label' => "",
@@ -445,11 +426,18 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
         ];
     }
 
-
+    /**
+     * Retourne l'évolution du backlogs accompagné de l'évolution des tickets clos, résolus et ouverts
+     *
+     * @param array $params default values for
+     * - 'title' of the card
+     * - 'icon' of the card
+     * - 'apply_filters' values from dashboard filters
+     *
+     * @return array
+     */
     public static function getBacklogsEvolution(array $params = []): array
     {
-        $DB = DBConnection::getReadConnection();
-
         $default_params = [
             'label' => "",
             'icon' => Ticket::getIcon(),
@@ -473,7 +461,7 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
         $series = [
 
             'inter_total' => [
-                'name' => _nx('ticket', 'Opened', 'Opened', \Session::getPluralNumber()),
+                'name' => _nx('ticket', 'Opened', 'Opened', Session::getPluralNumber()),
                 'search' => [
                     'criteria' => [
                         [
@@ -492,7 +480,7 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
                 ]
             ],
             'inter_solved' => [
-                'name' => _nx('ticket', 'Solved', 'Solved', \Session::getPluralNumber()),
+                'name' => _nx('ticket', 'Solved', 'Solved', Session::getPluralNumber()),
                 'search' => [
                     'criteria' => [
                         [
@@ -539,7 +527,8 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
         $total = array();
 
         $i = 0;
-        $monthsyears = [];
+
+        $monthsYears = [];
         foreach ($series as $stat_type => &$serie) {
             $values = Stat::constructEntryValues(
                 'Ticket',
@@ -553,12 +542,14 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
             );
 
             if ($i === 0) {
-                $monthsyears = array_keys($values);
+                $monthsYears = array_keys($values);
             }
+
             $values = array_values($values);
+
             foreach ($values as $index => $number) {
-                $current_monthyear = $monthsyears[$index];
-                list($start_day, $end_day) = PluginMorewidgetsUtilities::formatMonthyearDates($current_monthyear);
+                $currentMonthYear = $monthsYears[$index];
+                list($start_day, $end_day) = PluginMorewidgetsUtilities::formatMonthyearDates($currentMonthYear);
                 $serie['search']['criteria'][0]['value'] = $start_day;
                 $serie['search']['criteria'][1]['value'] = $end_day;
 
@@ -566,6 +557,10 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
                     'value' => $number,
                     'url' => Ticket::getSearchURL() . "?" . Toolbox::append_params($serie['search']),
                 ];
+
+                /**
+                 * Ce tableau va permettre de calculer le backlog
+                 */
                 $total[$i][$index] = [
                     'value' => $number,
                     'date' => $end_day,
@@ -574,18 +569,16 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
             $i++;
         }
 
-        foreach ($total as $first => $val) {
 
-            if ($first == 0) {
-                foreach ($val as $point => $value) {
-                    $result =
-                        ($value['value'] + $total[$first][$point - 1]['value']) - $total[2][$point]['value'];
+        /**
+         * Calcul du backlog en additionant le nombre de tickets ouverts sur le mois + les tickets
+         * ouverts restant le mois précedant. Le tout soustrait par le nombre de tickets résolu sur le ticket
+         * Il est possible de faire ça en parcourant le tableau $total
+         */
+        foreach ($total as $first => $val) if ($first == 0) foreach ($val as $point => $value) {
 
-                    $total[$first][$point]['value'] = $result;
-
-                }
-            }
-
+            $result = ($value['value'] + $total[$first][$point - 1]['value']) - $total[2][$point]['value'];
+            $total[$first][$point]['value'] = $result;
         }
 
         $s_criteria = [
@@ -620,12 +613,13 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
 
                 }
             }
+            break;
         }
 
 
         return [
             'data' => [
-                'labels' => $monthsyears,
+                'labels' => $monthsYears,
                 'series' => array_values($series),
             ],
             'label' => $params['label'],
@@ -633,6 +627,14 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
         ];
     }
 
+    /**
+     * Retourne le nombre total de tickets résolus par techniciens
+     * @param array $params default values for
+     * - 'title' of the card
+     * - 'icon' of the card
+     * - 'apply_filters' values from dashboard filters
+     * @return array
+     */
     public static function getTicketsTechnician(array $params = []): array
     {
 
@@ -654,6 +656,10 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
             "$t_table.is_deleted" => 0,
         ];
 
+        /**
+         * La requête permet de récuperer le nombre de tickets clos par techniciens
+         * et leurs noms associés.
+         */
         $criteria = array_merge_recursive(
             [
                 'SELECT' => array_merge([
@@ -670,6 +676,7 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
                         ]
                     ]
                 ],
+                'WHERE' => $where,
                 'GROUPBY' => "$ug_table.id",
             ],
             Ticket::getCriteriaFromProfile(),
@@ -701,19 +708,22 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
 
         foreach ($iterator as $result) {
 
+            /**
+             * Si il y a au moins un ticket de résolu on recupère les données
+             */
             if($result['nb_tickets'] > 0) {
 
                 $s_criteria['criteria'][1]['value'] = $result['actor_id'];
                 $names[] = $result['name'];
+
                 $data['number']['name'] = 'Tickets clos';
+
                 $data['number']['data'][] = [
                     'value' => $result['nb_tickets'],
                     'url' => Ticket::getSearchURL() . "?" . Toolbox::append_params($s_criteria),
                 ];
             }
-
         }
-
 
         return [
             'data' => [
@@ -724,4 +734,5 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
             'icon' => $params['icon'],
         ];
     }
+
 }

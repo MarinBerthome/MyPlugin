@@ -4,7 +4,11 @@
  * @return boolean
  */
 
-function plugin_morewidgets_install()
+/**
+ * Installation du plug-in
+ * On va créer un nouveau tableau de bord crédit
+ */
+function plugin_morewidgets_install(): bool
 {
     global $DB;
 
@@ -24,7 +28,10 @@ function plugin_morewidgets_install()
     return true ;
 }
 
-function plugin_morewidgets_uninstall()
+/**
+ * Fonction appelée lors de de la desinstallation du plug-in.
+ */
+function plugin_morewidgets_uninstall(): bool
 {
     global $DB;
 
@@ -38,22 +45,23 @@ function plugin_morewidgets_uninstall()
     return true ;
 }
 
-
-function plugin_morewidgets_dashboardCards()
+/**
+ * Retourne les nouvelles cartes ajoutées par le plug-in
+ */
+function plugin_morewidgets_dashboardCards(): array
 {
     $cards = [];
-    $cards = array_merge($cards, PluginMorewidgetsCreditcards::creditCards());
-    $cards += array_merge($cards, PluginMorewidgetsAssistancecards::assistanceCards());
-
-    return $cards;
+    return array_merge($cards, PluginMorewidgetsCreditcards::creditCards()) +  array_merge($cards, PluginMorewidgetsAssistancecards::assistanceCards());
 }
 
-function plugin_morewidgets_filter()
+/**
+ * Retourne les cérdits ajoutés par le plug-in
+ * Attention : Il faut ajouter une fonction correspondante. Voir Documentation Plug-in.
+ */
+function plugin_morewidgets_filter(): array
 {
-    $filter = [
+    return [
         'credit'      => __("Type de crédit"),
         'sla'         => __("SLAs"),
     ];
-
-    return $filter;
 }

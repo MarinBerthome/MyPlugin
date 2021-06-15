@@ -2,7 +2,11 @@
 
 class PluginMorewidgetsCreditcards extends CommonDBTM
 {
-    public static function creditCards()
+    /**
+     * Retourne un tableau de cartes manipulant les données crédits
+     * @return array
+     */
+    public static function creditCards(): array
     {
         $cards = array();
 
@@ -116,19 +120,23 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
         return $cards;
     }
 
-    //Cette fonction va retourner le nombre de crédit initiaux
+    /**
+     * Nombre de crédits initiaux
+     * @param array $params
+     * @return array
+     */
     public static function nbCredits(array $params = []): array
     {
 
         $DB = DBConnection::getReadConnection();
         $default_params = [
             'label' => "",
-            'icon' => \PluginCreditEntity::getIcon(),
+            'icon' => PluginCreditEntity::getIcon(),
             'apply_filters' => [],
         ];
         $params = array_merge($default_params, $params);
 
-        $t_table = \PluginCreditEntity::getTable();
+        $t_table = PluginCreditEntity::getTable();
 
         //On ecrit la requête SQL
         $criteria = array_merge_recursive(
@@ -171,7 +179,7 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
     }
 
     /**
-     * get the ending date of the credit subscription
+     * Date de la fin du crédit en format MM/YY
      *
      * @param array $params default values for
      * - 'title' of the card
@@ -185,12 +193,12 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
         $DB = DBConnection::getReadConnection();
         $default_params = [
             'label' => "",
-            'icon' => \PluginCreditEntity::getIcon(),
+            'icon' => PluginCreditEntity::getIcon(),
             'apply_filters' => [],
         ];
         $params = array_merge($default_params, $params);
 
-        $t_table = \PluginCreditEntity::getTable();
+        $t_table = PluginCreditEntity::getTable();
         $criteria = array_merge_recursive(
             [
                 'SELECT' => [
@@ -217,7 +225,7 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
     }
 
     /**
-     * get the quantity off the credit used
+     * Quantité des crédits utilisés
      *
      * @param array $params default values for
      * - 'title' of the card
@@ -228,39 +236,15 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
      */
     public static function nbCreditsUsed(array $params = []): array
     {
-        $DB = DBConnection::getReadConnection();
         $default_params = [
             'label' => "",
-            'icon' => \PluginCreditEntity::getIcon(),
+            'icon' => PluginCreditEntity::getIcon(),
             'apply_filters' => [],
         ];
         $params = array_merge($default_params, $params);
 
-        $t_table = PluginCreditEntity::getTable();
-        $s_table = PluginCreditTicket::getTable();
-        $criteria = array_merge_recursive(
-            [
-                'SELECT' => [
-                    "$t_table.quantity",
-                    'SUM' => "$s_table.consumed AS sum",
-                ],
-                'FROM' => $t_table,
-                'INNER JOIN' => [
-                    $s_table => [
-                        'ON' => [
-                            $s_table => 'plugin_credit_entities_id',
-                            $t_table => 'id',
-                        ],
-                    ],
-                ],
-            ],
-            PluginMorewidgetsUtilities::getFiltersCriteria($t_table, $params['apply_filters'])
-        );
-        $iterator = $DB->request($criteria);
-        $result = $iterator->next();
-
-
-        $nb_items = $result['sum'];
+        $tab = self::getCredits($params);
+        $nb_items = $tab['sum'];
 
         return [
             'number' => $nb_items,
@@ -271,7 +255,7 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
     }
 
     /**
-     * get the quantity off the credit remaining
+     * Quantité de crédits restant
      *
      * @param array $params default values for
      * - 'title' of the card
@@ -282,37 +266,15 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
      */
     public static function nbCreditsRemaining(array $params = []): array
     {
-        $DB = DBConnection::getReadConnection();
         $default_params = [
             'label' => "",
-            'icon' => \PluginCreditEntity::getIcon(),
+            'icon' => PluginCreditEntity::getIcon(),
             'apply_filters' => [],
         ];
         $params = array_merge($default_params, $params);
 
-        $t_table = \PluginCreditEntity::getTable();
-        $s_table = \PluginCreditTicket::getTable();
-        $criteria = array_merge_recursive(
-            [
-                'SELECT' => [
-                    "$t_table.quantity",
-                    'SUM' => "$s_table.consumed AS sum",
-                ],
-                'FROM' => $t_table,
-                'INNER JOIN' => [
-                    $s_table => [
-                        'ON' => [
-                            $s_table => 'plugin_credit_entities_id',
-                            $t_table => 'id',
-                        ],
-                    ],
-                ],
-            ],
-            PluginMorewidgetsUtilities::getFiltersCriteria($t_table, $params['apply_filters'])
-        );
-        $iterator = $DB->request($criteria);
-        $result = $iterator->next();
-        $result = $result['quantity'] - $result['sum'];
+        $tab = self::getCredits($params);
+        $result = $tab['quantity'] - $tab['sum'];
 
         return [
             'number' => $result,
@@ -322,86 +284,50 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
         ];
     }
 
+    /**
+     * Pourcentage des crédits utilisés
+     * @param array $params
+     * @return array
+     */
     public static function percentCreditsUsed(array $params = []): array
     {
-        $DB = DBConnection::getReadConnection();
         $default_params = [
             'label' => "",
-            'icon' => \PluginCreditEntity::getIcon(),
+            'icon' => PluginCreditEntity::getIcon(),
             'apply_filters' => [],
         ];
         $params = array_merge($default_params, $params);
 
-        $t_table = \PluginCreditEntity::getTable();
-        $s_table = \PluginCreditTicket::getTable();
-        $criteria = array_merge_recursive(
-            [
-                'SELECT' => [
-                    "$t_table.quantity",
-                    'SUM' => "$s_table.consumed AS sum",
-                ],
-                'FROM' => $t_table,
-                'INNER JOIN' => [
-                    $s_table => [
-                        'ON' => [
-                            $s_table => 'plugin_credit_entities_id',
-                            $t_table => 'id',
-                        ],
-                    ],
-                ],
-            ],
-            PluginMorewidgetsUtilities::getFiltersCriteria($t_table, $params['apply_filters'])
-        );
-        $iterator = $DB->request($criteria);
-        $result = $iterator->next();
-        $resulting = ($result['sum']) / $result['quantity'] * 100;
+        $tab = self::getCredits($params);
+        $result = ($tab['sum']) / $tab['quantity'] * 100;
 
         return [
-            'number' => $resulting . '%',
+            'number' => $result . '%',
             'url' => '',
             'label' => 'Crédit utilisé',
             'icon' => $default_params['icon'],
         ];
     }
 
+    /**
+     * Pourcentage des crédits restants
+     * @param array $params
+     * @return array
+     */
     public static function percentCreditsRemaining(array $params = []): array
     {
-        $DB = DBConnection::getReadConnection();
         $default_params = [
             'label' => "",
-            'icon' => \PluginCreditEntity::getIcon(),
+            'icon' => PluginCreditEntity::getIcon(),
             'apply_filters' => [],
         ];
         $params = array_merge($default_params, $params);
 
-        $t_table = \PluginCreditEntity::getTable();
-        $s_table = \PluginCreditTicket::getTable();
-        $criteria = array_merge_recursive(
-            [
-                'SELECT' => [
-                    "$t_table.quantity",
-                    'SUM' => "$s_table.consumed AS sum",
-                ],
-                'FROM' => $t_table,
-                'INNER JOIN' => [
-                    $s_table => [
-                        'ON' => [
-                            $s_table => 'plugin_credit_entities_id',
-                            $t_table => 'id',
-                        ],
-                    ],
-                ],
-            ],
-            PluginMorewidgetsUtilities::getFiltersCriteria($t_table, $params['apply_filters'])
-        );
-        $iterator = $DB->request($criteria);
-        $result = $iterator->next();
-
-        //On calcule le pourcentage
-        $resulting = (($result['quantity'] - $result['sum']) / $result['quantity']) * 100;
+        $tab = self::getCredits($params);
+        $result = (($tab['quantity'] - $tab['sum']) / $tab['quantity']) * 100;
 
         return [
-            'number' => $resulting . '%',
+            'number' => $result . '%',
             'url' => '',
             'label' => 'Crédits restant',
             'icon' => $default_params['icon'],
@@ -409,7 +335,7 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
     }
 
     /**
-     * Get ticket evolution by opened, solved, closed, late series and months group
+     * Consommation des crédits par tickets
      *
      * @param array $params default values for
      * - 'title' of the card
@@ -428,8 +354,8 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
         ];
         $params = array_merge($default_params, $params);
 
-        $t_table = \PluginCreditEntity::getTable();
-        $s_table = \PluginCreditTicket::getTable();
+        $t_table = PluginCreditEntity::getTable();
+        $s_table = PluginCreditTicket::getTable();
         //Get the start date and the end date
 
         $criteria = array_merge_recursive(
@@ -451,13 +377,6 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
                     ],
                 ],
             ],
-            PluginMorewidgetsUtilities::getFiltersCriteria($t_table, $params['apply_filters'])
-        );
-
-        $iterator = $DB->request($criteria);
-        $result = $iterator->next();
-
-        $filters = array_merge_recursive(
             PluginMorewidgetsUtilities::getFiltersCriteria($t_table, $params['apply_filters'])
         );
 
@@ -497,7 +416,7 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
     }
 
     /**
-     * Get ticket evolution by opened, solved, closed, late series and months group
+     * Evolution de l'utilisation de crédit par mois
      *
      * @param array $params default values for
      * - 'title' of the card
@@ -518,8 +437,8 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
 
         $params = array_merge($default_params, $params);
 
-        $t_table = \PluginCreditEntity::getTable();
-        $s_table = \PluginCreditTicket::getTable();
+        $t_table = PluginCreditEntity::getTable();
+        $s_table = PluginCreditTicket::getTable();
         //Get the start date and the end date
 
         $criteria = array_merge_recursive(
@@ -547,17 +466,14 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
         $iterator = $DB->request($criteria);
         $result = $iterator->next();
 
-        $filters = array_merge_recursive(
-            PluginMorewidgetsUtilities::getFiltersCriteria($t_table, $params['apply_filters'])
-        );
         $i = 0;
         $monthsYears = [];
         $begin = date_create($result['begin_date']);
         $end = date_create($result['end_date']);
 
 
-        $interval = \DateInterval::createFromDateString('1 month');
-        $period = new \DatePeriod($begin, $interval, $end);
+        $interval = DateInterval::createFromDateString('1 month');
+        $period = new DatePeriod($begin, $interval, $end);
 
         foreach ($period as $dt) {
             $monthsYears[$i] = $dt->format('m/y');
@@ -587,10 +503,10 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
 
         $total = array();
         $z = 0;
-        foreach ($values as $clef => $value) {
+        foreach ($values as $value) {
 
             $sum = 0;
-            foreach ($value as $c => $v) {
+            foreach ($value as $v) {
                 $sum += $v;
                 unset($v);
 
@@ -603,8 +519,8 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
         $z = 0;
 
         $sum = 0;
-        foreach ($values as $clef => $value) {
-            foreach ($value as $c => $v) {
+        foreach ($values as $value) {
+            foreach ($value as $v) {
                 $sum += $v;
                 unset($v);
 
@@ -624,7 +540,40 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
         ];
     }
 
+    /**
+     * Permet de recuperer le nombre de crédit utilisé et la quantité initiale
+     */
+    public static function getCredits(array $params = []): array
+    {
+        $DB = DBConnection::getReadConnection();
 
 
+        $t_table = PluginCreditEntity::getTable();
+        $s_table = PluginCreditTicket::getTable();
+        $criteria = array_merge_recursive(
+            [
+                'SELECT' => [
+                    "$t_table.quantity",
+                    'SUM' => "$s_table.consumed AS sum",
+                ],
+                'FROM' => $t_table,
+                'INNER JOIN' => [
+                    $s_table => [
+                        'ON' => [
+                            $s_table => 'plugin_credit_entities_id',
+                            $t_table => 'id',
+                        ],
+                    ],
+                ],
+            ],
+            PluginMorewidgetsUtilities::getFiltersCriteria($t_table, $params['apply_filters'])
+        );
+        $iterator = $DB->request($criteria);
+        $result = $iterator->next();
 
+        return [
+            'quantity' => $result['quantity'],
+            'sum'      => $result['sum'],
+        ];
+    }
 }

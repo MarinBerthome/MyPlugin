@@ -1,18 +1,34 @@
 <?php
 
-
+/**
+ * Class PluginMorewidgetsUtilities
+ * Elle permet de gérer les filtres et le format de dates.
+ * Les fonctions proviennent du fichier Inc/Dashboard/Provider.php
+ * Elles prennent en charge les nouveaux filtres du plug-in (sla et crédits)
+ */
 class PluginMorewidgetsUtilities extends CommonDBTM
 {
+    /**
+     * Fonction permettant de prendre en compte un filtre selectionné.
+     * En fonction du filtre, un where sera créé pour les requêtes SQL des fonctions
+     */
     public static function getFiltersCriteria(string $table = "", array $apply_filters = [])
     {
+
         $DB = DBConnection::getReadConnection();
 
         $where = [];
         $join = [];
 
+        /**
+         * Si on veut appliquer le filtre crédit
+         */
         if ($DB->fieldExists($table, 'id')
             && isset($apply_filters['credit'])
             && (int)$apply_filters['credit'] > 0) {
+            /**
+             * On ajoutera un where dans la requête SQL de la méthode retournant les données
+             */
             $where += [
                 "$table.id" => (int)$apply_filters['credit']
             ];
@@ -41,6 +57,7 @@ class PluginMorewidgetsUtilities extends CommonDBTM
             $where += self::getDatesCriteria("$table.date_mod", $apply_filters['dates_mod']);
         }
 
+        // Si le filtre recherché est slas_id_ttr
         if ($DB->fieldExists($table, 'slas_id_ttr')
             && isset($apply_filters['sla'])
             && (int)$apply_filters['sla'] > 0) {
@@ -128,6 +145,10 @@ class PluginMorewidgetsUtilities extends CommonDBTM
 
         return $criteria;
     }
+
+    /**
+     * Retourne l'URL associé en fonction des filtres
+     */
     public static function getSearchFiltersCriteria(string $table = "", array $apply_filters = []): array
     {
         $DB = DBConnection::getReadConnection();
@@ -152,14 +173,13 @@ class PluginMorewidgetsUtilities extends CommonDBTM
             $s_criteria['criteria'][] = self::getDatesSearchCriteria(self::getSearchOptionID($table, "date_creation", $table), $apply_filters['dates'], 'end');
         }
 
-
-
         if ($DB->fieldExists($table, 'date_mod')
             && isset($apply_filters['dates_mod'])
             && count($apply_filters['dates_mod']) == 2) {
             $s_criteria['criteria'][] = self::getDatesSearchCriteria(self::getSearchOptionID($table, "date_mod", $table), $apply_filters['dates_mod'], 'begin');
             $s_criteria['criteria'][] = self::getDatesSearchCriteria(self::getSearchOptionID($table, "date_mod", $table), $apply_filters['dates_mod'], 'end');
         }
+
         if ($DB->fieldExists($table, 'itilcategories_id')
             && isset($apply_filters['itilcategory'])
             && (int)$apply_filters['itilcategory'] > 0) {
@@ -170,7 +190,6 @@ class PluginMorewidgetsUtilities extends CommonDBTM
                 'value' => (int)$apply_filters['itilcategory']
             ];
         }
-
 
         if ($DB->fieldExists($table, 'slas_id_ttr')
             && isset($apply_filters['sla'])
@@ -193,7 +212,6 @@ class PluginMorewidgetsUtilities extends CommonDBTM
                 'value' => (int)$apply_filters['requesttype']
             ];
         }
-
 
         if ($DB->fieldExists($table, 'locations_id')
             && isset($apply_filters['location'])
@@ -274,7 +292,11 @@ class PluginMorewidgetsUtilities extends CommonDBTM
         return $s_criteria;
     }
 
-
+    /**
+     * Permet de récupèrer le premier jour du mois de $monthyear et le premier jour du mois suivant
+     * @param string $monthyear
+     * @return array
+     */
     public static function formatMonthyearDates(string $monthyear): array
     {
         $rawdate = explode('-', $monthyear);
