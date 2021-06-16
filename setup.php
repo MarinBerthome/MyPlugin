@@ -1,9 +1,11 @@
 <?php
 
-
+/**
+ * Initialisation du plugin, c'est ici qu'on retrouve les hooks
+ */
 function plugin_init_morewidgets() {
 
-    global $PLUGIN_HOOKS, $LANG ;
+    global $PLUGIN_HOOKS ;
 
     $PLUGIN_HOOKS['csrf_compliant']['morewidgets'] = true;
 
@@ -23,9 +25,11 @@ function plugin_init_morewidgets() {
 
 }
 
-
+/**
+ * Informations sur le plugin
+ * @return array
+ */
 function plugin_version_morewidgets(){
-    global $DB, $LANG;
 
     return array('name'			=> __('More Widgets','morewidgets'),
         'version' 			=> '1.0.2',
@@ -36,7 +40,10 @@ function plugin_version_morewidgets(){
     );
 }
 
-
+/**
+ * Vérifie si la version de GLPI est bien compatible
+ * @return bool
+ */
 function plugin_morewidgets_check_prerequisites(){
     if (GLPI_VERSION >= 9.4){
         return true;
@@ -44,7 +51,6 @@ function plugin_morewidgets_check_prerequisites(){
         echo "GLPI version NOT compatible. Requires GLPI >= 9.4";
     }
 }
-
 
 function plugin_morewidgets_check_config($verbose=false){
     if ($verbose) {
@@ -54,4 +60,4 @@ function plugin_morewidgets_check_config($verbose=false){
 }
 
 
-?>
+
