@@ -480,11 +480,6 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
         $series = [];
         $iterator = $DB->request($criteria);
 
-        $data = [
-            'labels' => [],
-            'series' => []
-        ];
-        $total = [];
         $i = 0;
         foreach ($iterator as $result) {
 
