@@ -13,7 +13,7 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
             'widgettype' => ['stackedbars'],
             'itemtype' => "\\Ticket",
             'group' => __('Assistance'),
-            'label' => __('Evolution des SLA '),
+            'label' => __('Respect des SLA '),
             'provider' => "PluginMorewidgetsAssistancecards::getSLAEvolution",
             'args'     => [
                 'case' => 'normal',
@@ -28,7 +28,7 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
             'widgettype' => ['stackedbars'],
             'itemtype' => "\\Ticket",
             'group' => __('Assistance'),
-            'label' => __('Pourcentage des SLA'),
+            'label' => __('Pourcentage du respect des SLA'),
             'provider' => "PluginMorewidgetsAssistancecards::getSLAEvolution",
             'args'     => [
                 'case' => 'percent',
@@ -55,7 +55,7 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
             'widgettype' => ['stackedbars', 'lines'],
             'itemtype' => "\\Ticket",
             'group' => __('Assistance'),
-            'label' => __('Évolution des backlogs sur l\'année passée'),
+            'label' => __('Évolution du backlog'),
             'provider' => "PluginMorewidgetsAssistancecards::getBacklogsEvolution",
             'filters' => [
                 'dates', 'dates_mod', 'itilcategory',
@@ -67,7 +67,7 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
             'widgettype' => ['stackedbars'],
             'itemtype' => "\\Ticket",
             'group' => __('Assistance'),
-            'label' => __('Tickets par techniciens'),
+            'label' => __('Tickets par technicien'),
             'provider' => "PluginMorewidgetsAssistancecards::getTicketsTechnician",
             'filters' => [
                 'dates', 'dates_mod', 'itilcategory',
@@ -149,10 +149,11 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
                     as " . $DB->quoteValue(_x('status', 'Non respectée'))
                         ),
                     ],
-                    'FROM' => new QuerySubQuery($sub_query, "{$t_table}_distinct"),
+                    'FROM'  => new QuerySubQuery($sub_query, "{$t_table}_distinct"),
                     'ORDER' => 'period ASC',
-                    'GROUP' => ['period']
+                    'GROUP' => ['period'],
                 ];
+                break;
             }
             case 'normal' :
             {
@@ -170,16 +171,16 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
                     as " . $DB->quoteValue(_x('status', 'Non respectée'))
                         ),
                     ],
-                    'FROM' => new QuerySubQuery($sub_query, "{$t_table}_distinct"),
+                    'FROM'  => new QuerySubQuery($sub_query, "{$t_table}_distinct"),
                     'ORDER' => 'period ASC',
                     'GROUP' => ['period'],
 
                 ];
+                break;
             }
         }
 
         $iterator = $DB->request($criteria);
-
         /**
          * URL pour retrouver les tickets concernés quand on clique dessus
          */
@@ -229,6 +230,7 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
          * Pour chaque colonne qui resulte de la requête SQL
          */
         foreach ($iterator as $result) {
+
 
             /**
              * On récupère la date
@@ -572,7 +574,7 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
 
         /**
          * Calcul du backlog en additionant le nombre de tickets ouverts sur le mois + les tickets
-         * ouverts restant le mois précedant. Le tout soustrait par le nombre de tickets résolu sur le ticket
+         * ouverts restant le mois précedant. Le tout soustrait par le nombre de tickets résolu sur le mois
          * Il est possible de faire ça en parcourant le tableau $total
          */
         foreach ($total as $first => $val) if ($first == 0) foreach ($val as $point => $value) {
@@ -610,7 +612,6 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
                         'value' => (int)$value['value'],
                         'url' => Ticket::getSearchURL() . '?' . Toolbox::append_params($s_criteria),
                     ];
-
                 }
             }
             break;

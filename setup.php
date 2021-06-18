@@ -5,7 +5,7 @@
  */
 function plugin_init_morewidgets() {
 
-    global $PLUGIN_HOOKS ;
+    global $PLUGIN_HOOKS, $LANG ;
 
     $PLUGIN_HOOKS['csrf_compliant']['morewidgets'] = true;
 
@@ -13,6 +13,7 @@ function plugin_init_morewidgets() {
         'addtabon' => ['Entity']
     ]);
 
+    // requis pour tous les plugins
     $PLUGIN_HOOKS["menu_toadd"]['morewidgets'] = array('plugins'  => 'PluginDashboardConfig');
     $PLUGIN_HOOKS['config_page']['morewidgets'] = 'front/index.php';
 
@@ -30,6 +31,7 @@ function plugin_init_morewidgets() {
  * @return array
  */
 function plugin_version_morewidgets(){
+    global $DB, $LANG;
 
     return array('name'			=> __('More Widgets','morewidgets'),
         'version' 			=> '1.0.2',

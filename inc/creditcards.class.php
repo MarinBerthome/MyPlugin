@@ -10,7 +10,7 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
     {
         $cards = array();
 
-        //Carte qui compte le nombre de crédit inital
+        //Carte qui compte le nombre de crédit initial
         $cards["bn_count_credit"] = [
 
             //Le type de widget ici bigNumber car on va juste afficher un nombre, c'est la carte de base GLPI
@@ -127,18 +127,24 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
      */
     public static function nbCredits(array $params = []): array
     {
-
+        //On récupère la configuration pour ce connecter à la BDD
         $DB = DBConnection::getReadConnection();
+
+        //Paramètres par défaut
         $default_params = [
+            //Texte du widget
             'label' => "",
+            //Icône du widget
             'icon' => PluginCreditEntity::getIcon(),
+            //Filtres appliqués
             'apply_filters' => [],
         ];
         $params = array_merge($default_params, $params);
 
+        //On récupère le nom de la table crédit
         $t_table = PluginCreditEntity::getTable();
 
-        //On ecrit la requête SQL
+        //On écrit la requête SQL
         $criteria = array_merge_recursive(
             [
                 'SELECT' => [
@@ -155,7 +161,7 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
         //On fait la requête auprès de la base de données
         $iterator = $DB->request($criteria);
 
-        //On a recupère le resultat
+        //On récupère le resultat
         $result = $iterator->next();
 
         //Puis on attribue la valeur retournée à une variable.
@@ -167,7 +173,7 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
             //Le nombre qui va être affiché
             'number' => $nb_items,
 
-            //url permet d'accéder à un lien en cliquand sur la carte, ici nous laissons cela vide
+            //url permet d'accéder à un lien en cliquant sur la carte, ici nous le laissons vide
             'url' => '',
 
             //Le texte qui va être affiché en dessous le nombre
@@ -212,7 +218,9 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
 
 
         $iterator = $DB->request($criteria);
+
         $result = $iterator->next();
+
         $date = date_create($result['end_date']);
         $date = date_format($date, 'm/y');
 
@@ -243,11 +251,11 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
         ];
         $params = array_merge($default_params, $params);
 
+        //On récupère le nombre de crédits utilisé
         $tab = self::getCredits($params);
-        $nb_items = $tab['sum'];
 
         return [
-            'number' => $nb_items,
+            'number' => $tab['sum'],
             'url' => '',
             'label' => 'Crédit utilisé',
             'icon' => $default_params['icon'],
@@ -273,7 +281,10 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
         ];
         $params = array_merge($default_params, $params);
 
+        //On récupère la quantité de base des crédits et la somme utilisée
         $tab = self::getCredits($params);
+
+        //On calcule le nombre de crédits restant
         $result = $tab['quantity'] - $tab['sum'];
 
         return [
@@ -298,7 +309,10 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
         ];
         $params = array_merge($default_params, $params);
 
+        //On récupère la quantité de base des crédits et la somme utilisée
         $tab = self::getCredits($params);
+
+        //On calcule le pourcentage utilisé
         $result = ($tab['sum']) / $tab['quantity'] * 100;
 
         return [
@@ -323,7 +337,10 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
         ];
         $params = array_merge($default_params, $params);
 
+        //On récupère la quantité de base des crédits et la somme utilisée
         $tab = self::getCredits($params);
+
+        //On calcule le pourcentage restant
         $result = (($tab['quantity'] - $tab['sum']) / $tab['quantity']) * 100;
 
         return [
@@ -386,16 +403,17 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
         $i = 0;
         $tab = array();
 
+        //Pour chaque ligne resultant de la requête
         while ($row = $iterator->next()) {
 
-            $id = $row['tickets_id'];
-
-            $tab[$id] += $row['consumed'];
-
+            //On ajoute au tableau $tab avec comme clé le nom du ticket pour pouvoir avoir le total de crédits utilisés
+            $tab[$row['tickets_id']] += $row['consumed'];
         }
 
+        //Pour chaque clé dans le tableau
         foreach ($tab as $ticket => $value) {
 
+            //Ce sera
             $tickets[$i] = 'Ticket n°' . $ticket;
             $series['credit']['name'] = 'Crédit';
             $series['credit']['data'][$i] = [
@@ -434,111 +452,84 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
             'apply_filters' => [],
         ];
 
-
         $params = array_merge($default_params, $params);
 
-        $t_table = PluginCreditEntity::getTable();
-        $s_table = PluginCreditTicket::getTable();
-        //Get the start date and the end date
+        $t_table = PluginCreditTicket::getTable();
 
-        $criteria = array_merge_recursive(
-            [
-                'SELECT' => [
-                    "$t_table.begin_date",
-                    "$t_table.end_date",
-                    "$s_table.consumed",
-                    "$s_table.date_creation"
-                ],
-                'FROM' => $t_table,
-                'INNER JOIN' => [
-                    $s_table => [
-                        'ON' => [
-                            $s_table => 'plugin_credit_entities_id',
-                            $t_table => 'id',
-                        ],
-                    ],
-                ],
+        $where = [
+            "$t_table.plugin_credit_entities_id" => $params['apply_filters'],
+        ];
 
+        $criteria = [
+            'SELECT' => [
+                new QueryExpression(
+                    "FROM_UNIXTIME(UNIX_TIMESTAMP(" . $DB->quoteName("{$t_table}.date_creation") . "),'%Y-%m') AS period"
+                ),
+                new QueryExpression(
+                    "SUM(IFNULL({$t_table}.consumed, 0))
+                    as ". $DB->quoteValue(_x('status', 'consumed'))
+                ),
             ],
-            PluginMorewidgetsUtilities::getFiltersCriteria($t_table, $params['apply_filters'])
-        );
+            'FROM'  => $t_table,
+            'ORDER' => 'period ASC',
+            'GROUP' => ['period'],
+            'WHERE' => $where,
+        ];
 
+        $monthYears = [];
+        $series = [];
         $iterator = $DB->request($criteria);
-        $result = $iterator->next();
 
+        $data = [
+            'labels' => [],
+            'series' => []
+        ];
+        $total = [];
         $i = 0;
-        $monthsYears = [];
-        $begin = date_create($result['begin_date']);
-        $end = date_create($result['end_date']);
+        foreach ($iterator as $result) {
+
+            $monthYears[] = $result['period'];
+            $tmp = $result;
+
+            unset($tmp['period']);
+
+            foreach ($tmp as $value) {
 
 
-        $interval = DateInterval::createFromDateString('1 month');
-        $period = new DatePeriod($begin, $interval, $end);
+                $series['parmois']['name'] = "Crédit utilisé par mois";
+                $series['parmois']['data'][] = [
+                    'value' => (int)$value,
+                    'url' => '',
+                ];
 
-        foreach ($period as $dt) {
-            $monthsYears[$i] = $dt->format('m/y');
+                $series['total']['name'] = "Total accumulé";
+                if ($i > 0)
+                {
+                    $series['total']['data'][] = [
+                        'value' => (int)$value + $series['total']['data'][$i-1]['value'],
+                        'url' => '',
+                    ];
+                }
+                else {
+                    $series['total']['data'][] = [
+                        'value' => (int)$value,
+                        'url' => '',
+                    ];
+                }
+            }
             $i++;
         }
 
-
-        $values = [];
-        foreach ($monthsYears as $month) {
-            $iterator = $DB->request($criteria);
-            $z = 0;
-            while ($row = $iterator->next()) {
-
-                $date = date_create($row['date_creation']);
-                $date = date_format($date, 'm/y');
-
-                if ($month == $date) {
-
-                    $values[$month][$z] = $row['consumed'];
-                    $z++;
-                } else {
-                    $values[$month][$z] = 0;
-                    $z++;
-                }
-            }
-        }
-
-        $total = array();
-        $z = 0;
-        foreach ($values as $value) {
-
-            $sum = 0;
-            foreach ($value as $v) {
-                $sum += $v;
-                unset($v);
-
-            }
-            $total['parmois']['name'] = 'Crédit utilisé par mois';
-            $total['parmois']['data'][$z] = $sum;
-            $z++;
-        }
-
-        $z = 0;
-
-        $sum = 0;
-        foreach ($values as $value) {
-            foreach ($value as $v) {
-                $sum += $v;
-                unset($v);
-
-            }
-            $total['evolution']['name'] = 'Total accumulé';
-            $total['evolution']['data'][$z] = $sum;
-            $z++;
-        }
-
         return [
-            'data' => [
-                'labels' => $monthsYears,
-                'series' => array_values($total),
+            'data'  => [
+                'labels' => $monthYears,
+                'series' => array_values($series),
             ],
             'label' => $params['label'],
-            'icon' => $params['icon'],
+            'icon'  => $params['icon'],
         ];
     }
+
 
     /**
      * Permet de recuperer le nombre de crédit utilisé et la quantité initiale
@@ -568,6 +559,7 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
             ],
             PluginMorewidgetsUtilities::getFiltersCriteria($t_table, $params['apply_filters'])
         );
+
         $iterator = $DB->request($criteria);
         $result = $iterator->next();
 

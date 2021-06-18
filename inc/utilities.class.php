@@ -14,25 +14,10 @@ class PluginMorewidgetsUtilities extends CommonDBTM
      */
     public static function getFiltersCriteria(string $table = "", array $apply_filters = [])
     {
-
         $DB = DBConnection::getReadConnection();
 
         $where = [];
         $join = [];
-
-        /**
-         * Si on veut appliquer le filtre crédit
-         */
-        if ($DB->fieldExists($table, 'id')
-            && isset($apply_filters['credit'])
-            && (int)$apply_filters['credit'] > 0) {
-            /**
-             * On ajoutera un where dans la requête SQL de la méthode retournant les données
-             */
-            $where += [
-                "$table.id" => (int)$apply_filters['credit']
-            ];
-        }
 
         if (($DB->fieldExists($table, 'date'))
             && isset($apply_filters['dates'])
@@ -57,14 +42,6 @@ class PluginMorewidgetsUtilities extends CommonDBTM
             $where += self::getDatesCriteria("$table.date_mod", $apply_filters['dates_mod']);
         }
 
-        // Si le filtre recherché est slas_id_ttr
-        if ($DB->fieldExists($table, 'slas_id_ttr')
-            && isset($apply_filters['sla'])
-            && (int)$apply_filters['sla'] > 0) {
-            $where += [
-                "$table.slas_id_ttr" => (int)$apply_filters['sla']
-            ];
-        }
 
         if ($DB->fieldExists($table, 'itilcategories_id')
             && isset($apply_filters['itilcategory'])
@@ -81,6 +58,43 @@ class PluginMorewidgetsUtilities extends CommonDBTM
                 "$table.requesttypes_id" => (int)$apply_filters['requesttype']
             ];
         }
+
+        if ($DB->fieldExists($table, 'locations_id')
+            && isset($apply_filters['location'])
+            && (int)$apply_filters['location'] > 0) {
+            $where += [
+                "$table.locations_id" => (int)$apply_filters['location']
+            ];
+        }
+
+        if ($DB->fieldExists($table, 'manufacturers_id')
+            && isset($apply_filters['manufacturer'])
+            && (int)$apply_filters['manufacturer'] > 0) {
+            $where += [
+                "$table.manufacturers_id" => (int)$apply_filters['manufacturer']
+            ];
+        }
+
+        // Si le filtre recherché est slas_id_ttr
+        if ($DB->fieldExists($table, 'slas_id_ttr')
+            && isset($apply_filters['sla'])
+            && (int)$apply_filters['sla'] > 0) {
+            $where += [
+                "$table.slas_id_ttr" => (int)$apply_filters['sla']
+            ];
+        }
+
+        if ($DB->fieldExists($table, 'id')
+            && isset($apply_filters['credit'])
+            && (int)$apply_filters['credit'] > 0) {
+            /**
+             * On ajoutera un where dans la requête SQL de la méthode retournant les données
+             */
+            $where += [
+                "$table.id" => (int)$apply_filters['credit']
+            ];
+        }
+
 
         if (isset($apply_filters['group_tech'])) {
 
@@ -116,7 +130,7 @@ class PluginMorewidgetsUtilities extends CommonDBTM
                         ]
                     ];
                     $where += [
-                        "gl.type" => \CommonITILActor::ASSIGN,
+                        "gl.type" => CommonITILActor::ASSIGN,
                         "gl.groups_id" => $groups_id
                     ];
                 }
@@ -130,12 +144,33 @@ class PluginMorewidgetsUtilities extends CommonDBTM
                 $where += [
                     "$table.users_id_tech" => (int)$apply_filters['user_tech']
                 ];
+            } else if (in_array($table, [
+                Ticket::getTable(),
+                Change::getTable(),
+                Problem::getTable(),
+            ])) {
+                $itemtype = getItemTypeForTable($table);
+                $main_item = getItemForItemtype($itemtype);
+                $userlink = $main_item->userlinkclass;
+                $gl_table = $userlink::getTable();
+                $fk = $main_item->getForeignKeyField();
+
+                $join += [
+                    "$gl_table as gl" => [
+                        'ON' => [
+                            'gl' => $fk,
+                            $table => 'id',
+                        ]
+                    ]
+                ];
+                $where += [
+                    "gl.type" => CommonITILActor::ASSIGN,
+                    "gl.users_id" => (int)$apply_filters['user_tech']
+                ];
             }
         }
 
-
         $criteria = [];
-
         if (count($where)) {
             $criteria['WHERE'] = $where;
         }
@@ -308,5 +343,50 @@ class PluginMorewidgetsUtilities extends CommonDBTM
         $end_day = date("Y-m-d H:i:s", strtotime("first day of next month", $monthtime));
 
         return [$start_day, $end_day];
+    }
+
+    private static function getDatesCriteria(string $field = "", array $dates = []): array
+    {
+        $begin = strtotime($dates[0]);
+        $end = strtotime($dates[1]);
+
+        return [
+            [$field => ['>=', date('Y-m-d', $begin)]],
+            [$field => ['<=', date('Y-m-d', $end)]],
+        ];
+    }
+
+    private static function getDatesSearchCriteria(int $searchoption_id, array $dates = [], $when = 'begin'): array
+    {
+
+        if ($when == "begin") {
+            $begin = strtotime($dates[0]);
+            return [
+                'link' => 'AND',
+                'field' => $searchoption_id, // creation date
+                'searchtype' => 'morethan',
+                'value' => date('Y-m-d 00:00:00', $begin)
+            ];
+        } else {
+            $end = strtotime($dates[1]);
+            return [
+                'link' => 'AND',
+                'field' => $searchoption_id, // creation date
+                'searchtype' => 'lessthan',
+                'value' => date('Y-m-d 00:00:00', $end)
+            ];
+        }
+    }
+
+    private static function getSearchOptionID(string $table, string $name, string $tableToSearch): int
+    {
+        $data = Search::getOptions(getItemTypeForTable($table), true);
+        $sort = [];
+        foreach ($data as $ref => $opt) {
+            if (isset($opt['field'])) {
+                $sort[$ref] = $opt['linkfield'] . "-" . $opt['table'];
+            }
+        }
+        return array_search($name . "-" . $tableToSearch, $sort);
     }
 }

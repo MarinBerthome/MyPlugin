@@ -62,6 +62,5 @@ function plugin_morewidgets_filter(): array
 {
     return [
         'credit'      => __("Type de crédit"),
-        'sla'         => __("SLAs"),
     ];
 }
