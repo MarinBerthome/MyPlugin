@@ -51,7 +51,7 @@ function plugin_morewidgets_uninstall(): bool
 function plugin_morewidgets_dashboardCards(): array
 {
     $cards = [];
-    return array_merge($cards, PluginMorewidgetsCreditcards::creditCards()) +  array_merge($cards, PluginMorewidgetsAssistancecards::assistanceCards());
+    return array_merge($cards, PluginMorewidgetsCreditcards::creditCards()) +  array_merge($cards, PluginMorewidgetsAssistancecards::assistanceCards()) + array_merge($cards, PluginMorewidgetsSatisfactioncards::satisfactionCards());
 }
 
 /**

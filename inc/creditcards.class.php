@@ -135,7 +135,7 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
             //Texte du widget
             'label' => "",
             //Icône du widget
-            'icon' => PluginCreditEntity::getIcon(),
+            'icon' => self::getIcon(),
             //Filtres appliqués
             'apply_filters' => [],
         ];
@@ -199,7 +199,7 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
         $DB = DBConnection::getReadConnection();
         $default_params = [
             'label' => "",
-            'icon' => PluginCreditEntity::getIcon(),
+            'icon' => self::getIcon(),
             'apply_filters' => [],
         ];
         $params = array_merge($default_params, $params);
@@ -246,7 +246,7 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
     {
         $default_params = [
             'label' => "",
-            'icon' => PluginCreditEntity::getIcon(),
+            'icon' => self::getIcon(),
             'apply_filters' => [],
         ];
         $params = array_merge($default_params, $params);
@@ -276,7 +276,7 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
     {
         $default_params = [
             'label' => "",
-            'icon' => PluginCreditEntity::getIcon(),
+            'icon' => self::getIcon(),
             'apply_filters' => [],
         ];
         $params = array_merge($default_params, $params);
@@ -304,7 +304,7 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
     {
         $default_params = [
             'label' => "",
-            'icon' => PluginCreditEntity::getIcon(),
+            'icon' => self::getIcon(),
             'apply_filters' => [],
         ];
         $params = array_merge($default_params, $params);
@@ -332,7 +332,7 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
     {
         $default_params = [
             'label' => "",
-            'icon' => PluginCreditEntity::getIcon(),
+            'icon' => self::getIcon(),
             'apply_filters' => [],
         ];
         $params = array_merge($default_params, $params);
@@ -480,6 +480,7 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
         $series = [];
         $iterator = $DB->request($criteria);
 
+
         $i = 0;
         foreach ($iterator as $result) {
 
@@ -514,6 +515,7 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
             }
             $i++;
         }
+
 
         return [
             'data'  => [
@@ -560,7 +562,12 @@ class PluginMorewidgetsCreditcards extends CommonDBTM
 
         return [
             'quantity' => $result['quantity'],
-            'sum'      => $result['sum'],
+            'sum' => $result['sum'],
         ];
+    }
+
+    static function getIcon(): string
+    {
+        return "fas fa-wallet";
     }
 }
