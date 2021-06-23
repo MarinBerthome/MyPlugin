@@ -187,26 +187,26 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
         $s_criteria = [
             'criteria' => [
                 [
-                    'link' => 'AND',
-                    'field' => 12, // status
+                    'link'       => 'AND',
+                    'field'      => 12, // status
                     'searchtype' => 'equals',
-                    'value' => '6' // clos
+                    'value'      => '6' // clos
                 ], [
-                    'link' => 'AND',
-                    'field' => 15, // creation date
+                    'link'       => 'AND',
+                    'field'      => 15, // creation date
                     'searchtype' => 'morethan',
-                    'value' => null
+                    'value'      => null
                 ], [
-                    'link' => 'AND',
-                    'field' => 15, // creation date
+                    'link'       => 'AND',
+                    'field'      => 15, // creation date
                     'searchtype' => 'lessthan',
-                    'value' => null
+                    'value'      => null
                 ],
                 [
-                    'link' => 'AND',
-                    'field' => 82, // TTR dépassé
+                    'link'       => 'AND',
+                    'field'      => 82, // TTR dépassé
                     'searchtype' => 'equals',
-                    'value' => null
+                    'value'      => null
                 ],
                 PluginMorewidgetsUtilities::getSearchFiltersCriteria($t_table, $params['apply_filters'])
             ],

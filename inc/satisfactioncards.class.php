@@ -59,6 +59,7 @@ class PluginMorewidgetsSatisfactioncards extends CommonDBTM
             PluginMorewidgetsUtilities::getFiltersCriteria($t_table, $params['apply_filters'])
         );
 
+
         $iterator = $DB->request($criteria);
 
         $total = 0;
@@ -136,40 +137,61 @@ class PluginMorewidgetsSatisfactioncards extends CommonDBTM
                 'GROUP' => "$t_table.satisfaction",
             ]
         );
-
         $iterator = $DB->request($criteria);
-        $value = array(0, 0, 0, 0, 0);
+        $value = array();
+
+        $s_criteria = [
+            'criteria' => [
+                [
+                    'link'       => 'AND',
+                    'field'      =>  62,// satisfaction
+                    'searchtype' => 'contains',
+                    'value'      => null,
+                ],
+            ]
+        ];
+
+        $i = 1;
+        while($i != 6)
+        {
+            $value[$i]['data']['value'] = 0;
+            $i++;
+        }
 
         foreach ($iterator as $result) {
-            $value[$result['satisfaction']] = $result['total'];
+            $s_criteria['criteria'][0]['value'] = $result['satisfaction'];
+            $value[$result['satisfaction']]['data'] = [
+                'value' => $result['total'],
+                'url'   => Ticket::getSearchURL() . "?" . Toolbox::append_params($s_criteria),
+            ];
         }
 
         return [
             'data' => [
                 [
-                    'number' => $value[1],
+                    'number' => $value[1]['data']['value'],
                     'label' => __("1 étoiles"),
-                    'url' => '',
+                    'url' => $value[1]['data']['url'],
                     'color' => '#FB0000',
                 ], [
-                    'number' => $value[2],
+                    'number' => $value[2]['data']['value'],
                     'label' => __("2 étoiles"),
-                    'url' => '',
+                    'url' => $value[2]['data']['url'],
                     'color' => '#C42D77',
                 ], [
-                    'number' => $value[3],
+                    'number' => $value[3]['data']['value'],
                     'label' => __("3 étoiles"),
-                    'url' => '',
+                    'url' => $value[3]['data']['url'],
                     'color' => '#2D75C4',
                 ], [
-                    'number' => $value[4],
+                    'number' => $value[4]['data']['value'],
                     'label' => __("4 étoiles"),
-                    'url' => '',
+                    'url' => $value[4]['data']['url'],
                     'color' => '#2DC47F',
                 ], [
-                    'number' => $value[5],
+                    'number' => $value[5]['data']['value'],
                     'label' => __("5 étoiles"),
-                    'url' => '',
+                    'url' => $value[5]['data']['url'],
                     'color' => '#36C42D',
                 ]
             ],
