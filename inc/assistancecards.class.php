@@ -652,9 +652,10 @@ class PluginMorewidgetsAssistancecards extends CommonDBTM
         $t_table = Ticket::getTable();
         $ug_table = User::getTable();
 
-
+        print_r(Ticket::getSolvedStatusArray());
         $where = [
             "$t_table.is_deleted" => 0,
+            "$ug_table.is_active" => 1,
         ];
 
         /**
